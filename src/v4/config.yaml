@@ -1,0 +1,4 @@
+BASE_URL: "https://13f.info"
+OUT_DIR: "out"
+MAX_WORKERS: 12
+LETTERS: [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z, 0]

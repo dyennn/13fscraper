@@ -1,7 +1,17 @@
-import sqlite3  # For database access
-from tabulate import tabulate  # For pretty-printing query results
+"""
+analysis.py - Query and export scraped 13f.info data
 
-DB_FILE = "out/filings.db"  # Path to SQLite database
+- Provides CLI and interactive menu for running built-in SQL queries.
+- Supports exporting results to CSV/JSON.
+"""
+import sqlite3
+from tabulate import tabulate
+import argparse
+import csv
+import json
+import os
+
+DB_FILE = "out/filings.db"
 
 # Predefined analysis queries for reporting and statistics
 QUERIES = {
@@ -154,8 +164,10 @@ QUERIES = {
 }
 
 
-def run_query(choice):
-    # Run a selected query and print results in table format
+def run_query(choice, export_csv=None, export_json=None):
+    """
+    Run a selected query, print results, and optionally export to CSV/JSON.
+    """
     con = sqlite3.connect(DB_FILE)
     cur = con.cursor()
     title, query = QUERIES[choice]
@@ -163,13 +175,47 @@ def run_query(choice):
     try:
         cur.execute(query)
         rows = cur.fetchall()
-        print(tabulate(rows, headers=[d[0] for d in cur.description]))
+        headers = [d[0] for d in cur.description]
+        print(tabulate(rows, headers=headers))
+        if export_csv:
+            with open(export_csv, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerow(headers)
+                writer.writerows(rows)
+            print(f"Exported to CSV: {export_csv}")
+        if export_json:
+            with open(export_json, 'w', encoding='utf-8') as f:
+                json.dump([dict(zip(headers, row)) for row in rows], f, indent=2)
+            print(f"Exported to JSON: {export_json}")
     except Exception as e:
         print(f"Error running query: {e}")
     con.close()
 
 
 def menu():
+    parser = argparse.ArgumentParser(
+        description="""
+        13F Analysis: Query and export scraped 13f.info data.
+        
+        Examples:
+          python analysis.py --query 1 --export-csv reports.csv
+          python analysis.py --query 2 --export-json holdings.json
+          python analysis.py --help
+        """,
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+    parser.add_argument('--query', type=str, help='Query number to run (e.g. 1, 2, 3, ...). See menu for options.')
+    parser.add_argument('--export-csv', type=str, help='Export result to CSV file (optional)')
+    parser.add_argument('--export-json', type=str, help='Export result to JSON file (optional)')
+    args = parser.parse_args()
+
+    if args.query:
+        if args.query in QUERIES:
+            run_query(args.query, export_csv=args.export_csv, export_json=args.export_json)
+        else:
+            print("Invalid query number. Run without --query to see menu.")
+        return
+
     # Interactive menu for running analysis queries
     while True:
         print("\n=== Query Menu ===")
@@ -182,11 +228,11 @@ def menu():
             print("Goodbye 👋")
             break
         elif choice in QUERIES:
-            run_query(choice)
+            export_csv = input("Export to CSV? (filename or blank): ").strip() or None
+            export_json = input("Export to JSON? (filename or blank): ").strip() or None
+            run_query(choice, export_csv=export_csv, export_json=export_json)
         else:
             print("Invalid choice. Try again.")
 
-
 if __name__ == "__main__":
-    # Entry point: show menu for analysis queries
     menu()
