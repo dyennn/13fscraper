@@ -1,7 +1,6 @@
-import requests, os, time, sqlite3, threading  # Core libraries for HTTP, DB, threading
+import requests, os, time, sqlite3  # Core libraries for HTTP, DB
 from bs4 import BeautifulSoup  # HTML parsing
 from concurrent.futures import ThreadPoolExecutor, as_completed  # Threaded scraping
-from queue import Queue  # (Unused, but imported)
 
 BASE = "https://13f.info"  # Base URL for scraping
 LETTERS = [chr(c) for c in range(ord('a'), ord('z')+1)] + ["0"]  # Manager index letters
@@ -11,7 +10,6 @@ os.makedirs(OUT_DIR, exist_ok=True)
 DB_FILE = os.path.join(OUT_DIR, "filings.db")  # SQLite DB file
 
 MAX_WORKERS = 12  # Thread count for parallel scraping
-BATCH_SIZE = 500  # (Unused, but imported)
 
 def log(msg): 
     # Timestamped logger for progress and errors
@@ -196,6 +194,7 @@ if __name__ == "__main__":
                 # Log skipped reports
                 for r in reports:
                     con.execute("INSERT INTO scrape_log (ReportLink, Status) VALUES (?, 'skipped')", (r[0],))
+                    log(f"Skipped report (already scraped): {r[0]}")
                 con.commit()
                 continue
 
